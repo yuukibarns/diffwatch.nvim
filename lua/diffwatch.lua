@@ -181,13 +181,19 @@ local function update_cursor_hint()
 end
 
 --- Generate diff between current and original buffer states
+--- TODO(yuukibarns): Better Diff
 --- @return integer[][]
 local function generate_diff()
     local current_lines = vim.api.nvim_buf_get_lines(0, 0, -1, false)
-    return vim.diff(
+    return vim.diff( ---@type integer[][]
         table.concat(state.original_lines, '\n'),
         table.concat(current_lines, '\n'),
-        { result_type = 'indices', ignore_blank_lines = true, ignore_whitespace_change_at_eol = true }
+        {
+            result_type = 'indices',
+            algorithm = "minimal",
+            ignore_blank_lines = true,
+            ignore_whitespace_change_at_eol = true
+        }
     )
 end
 
@@ -198,6 +204,9 @@ local function highlight_changes()
 
     local diff = generate_diff()
     state.changes = {}
+
+    -- Get current window width
+    local win_width = vim.api.nvim_win_get_width(0)
 
     -- Process diff hunks
     for _, hunk in ipairs(diff) do
@@ -232,8 +241,6 @@ local function highlight_changes()
             })
 
             local del_lines_with_hi = {}
-
-            -- Do not display empty lines for simplicity
             local is_empty_lines = true
 
             for i = orig_start, orig_start + orig_count - 1 do
@@ -244,13 +251,17 @@ local function highlight_changes()
 
             if not is_empty_lines then
                 for i = orig_start, orig_start + orig_count - 1 do
-                    table.insert(del_lines_with_hi, { { state.original_lines[i], CONFIG.highlights.removed } })
+                    local line = state.original_lines[i]
+                    -- Calculate needed spaces
+                    local line_width = vim.fn.strdisplaywidth(line)
+                    local spaces_needed = math.max(0, win_width - line_width)
+                    local padded_line = line .. string.rep(' ', spaces_needed)
+                    table.insert(del_lines_with_hi, { { padded_line, CONFIG.highlights.removed } })
                 end
 
                 if curr_start == 0 then
                     vim.api.nvim_buf_set_extmark(0, NAMESPACE, 0, 0, {
                         virt_lines = del_lines_with_hi,
-                        -- virt_lines_above = true,
                     })
                 else
                     vim.api.nvim_buf_set_extmark(0, NAMESPACE, curr_start - 1, 0, {
@@ -278,8 +289,6 @@ local function highlight_changes()
             end
 
             local orig_lines_with_hi = {}
-
-            -- Do not display empty lines for simplicity
             local is_empty_lines = true
 
             for i = orig_start, orig_start + orig_count - 1 do
@@ -290,7 +299,12 @@ local function highlight_changes()
 
             if not is_empty_lines then
                 for i = orig_start, orig_start + orig_count - 1 do
-                    table.insert(orig_lines_with_hi, { { state.original_lines[i], CONFIG.highlights.modified } })
+                    local line = state.original_lines[i]
+                    -- Calculate needed spaces
+                    local line_width = vim.fn.strdisplaywidth(line)
+                    local spaces_needed = math.max(0, win_width - line_width)
+                    local padded_line = line .. string.rep(' ', spaces_needed)
+                    table.insert(orig_lines_with_hi, { { padded_line, CONFIG.highlights.modified } })
                 end
 
                 vim.api.nvim_buf_set_extmark(0, NAMESPACE, curr_start + curr_count - 2, 0, {
