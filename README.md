@@ -15,26 +15,13 @@ This plugin provides the following two user commands:
 
 ## Showcase
 
-<div align="center">
-<figure>
-  <img src="./static/DiffAdd.png" alt="image" width="600">
-  <figcaption>Diff Add</figcaption>
-</figure>
-</div>
-
-<div align="center">
-<figure>
-  <img src="./static/DiffDelete.png" alt="image" width="600">
-  <figcaption>Diff Delete</figcaption>
-</figure>
-</div>
-
-<div align="center">
-<figure>
-  <img src="./static/DiffChange.png" alt="image" width="600">
-  <figcaption>Diff Change</figcaption>
-</figure>
-</div>
+|    ![DiffAdd](./static/DiffAdd.png)    |
+| :------------------------------------: |
+|                Diff Add                |
+| ![DiffDelete](./static/DiffDelete.png) |
+|              Diff Delete               |
+| ![DiffChange](./static/DiffChange.png) |
+|              Diff Change               |
 
 ## Feature
 
