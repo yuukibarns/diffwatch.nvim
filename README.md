@@ -1,17 +1,18 @@
 # DiffWatch.nvim
 
-A QoL plugin for display diff between the current buffer and the previous one.
+A QoL plugin that displays inline diffs between the previous and current buffer
+state, with intuitive navigation and change resolution.
 
 ## Usage
 
-This plugin provides the following two user commands:
+This plugin provides two commands:
 
 - `DiffWatch`\
-  Toggle the "DiffWatch", i.e., whether to watch the current buffer for diff.
+  Toggles watching the current buffer for changes.
 
 - `DiffWatchReset`\
-  Reset the "original buffer" to the current buffer, so that show diff between
-  the current and the future.
+  Resets the "original buffer" reference to the current state, showing diffs
+  between now and future changes
 
 ## Showcase
 
@@ -23,35 +24,34 @@ This plugin provides the following two user commands:
 | ![DiffChange](./static/DiffChange.png) |
 |              Diff Change               |
 
-## Feature
+## Features
 
-- Inline diff.\
-  As you can see in the showcases, the previous codes are displayed inline, not
-  the canonical side-by-side way, I find it more eye-friendly.
+- **Inline diffs**\
+  Shows previous versions inline rather than side-by-side, which many find more
+  readable (as shown in the examples)
 
-- No code insert into your file automatically.\
-  I'm often afraid that the previous codes will be inserted into my file and
-  break treesitter, lsp, etc. But this plugin does not do anything to your file
-  unless you accept the changes manually. The point is that the previous codes
-  will be displayed as **virtual lines**.
+- **Non-invasive**\
+  Never automatically modifies your file - previous versions appear as virtual
+  text without affecting treesitter, LSP, etc. Changes only apply when manually
+  accepted
 
-- Ours, theirs, both and none.\
-  When cursor is inside one change, a hint will be displayed at the right after
-  the eol like `<leader>co:ours|<leader>ca:theirs...`, to prompt the keymaps you
-  can use to resolve the change. Currently there are four resolution methods:
+- **Flexible resolution**\
+  When your cursor is in a changed region, hints appear showing resolution
+  options, `<leader>co:ours | <leader>ca:theirs...`.
 
-  - `ours`: Use codes from the previous buffer.
-  - `theirs`: Use current codes.
-  - `both`: Use both.
-  - `none`: Use none.
+  Available actions:
+  - `ours`: Keep previous version
+  - `theirs`: Keep current changes
+  - `both`: Combine versions
+  - `none`: Remove both
 
-- Navigation between changes.\
-  The plugin provide default keymaps `[w`, `]w` for easily navigating changes.
+- **Change navigation**\
+  Default keymaps `[w` and `]w` for jumping between changes
 
 ## Why This Plugin?
 
 Keep It Simple and Stupid!
 
-I previously use `avante.nvim` for quickly applying AI generated code to the
-buffer, but I find it complicated to use a huge plugin (imo) for only one small
-feature that may be even borrowed from other plugins like `git-conflict.nvim`.
+I previously used `avante.nvim` for applying AI-generated code, but found it
+unnecessarily complex when I only needed one small feature that may be even
+borrowed from plugins like `git-conflict.nvim`.
