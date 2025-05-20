@@ -16,8 +16,6 @@ local CONFIG = {
         theirs = "<leader>ca",
         both = "<leader>cu",
         none = "<leader>cn",
-        prev_change = "[w",
-        next_change = "]w",
     },
     hint_position = 'eol_right_align',
 }

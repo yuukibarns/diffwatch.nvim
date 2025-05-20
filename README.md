@@ -3,9 +3,53 @@
 A QoL plugin that displays inline diffs between the previous and current buffer
 state, with intuitive navigation and change resolution.
 
+## Installation
+
+With `lazy.nvim`:
+
+```lua
+return {
+    {
+        "yuukibarns/diffwatch.nvim",
+        keys = {
+            { "<leader>cw", "<Cmd>DiffWatchToggle<CR>", desc = "Diff Watch Toggle" },
+            { "<leader>cr", "<Cmd>DiffWatchReset<CR>",  desc = "Diff Watch Reset" },
+            { "[w",         "<Cmd>DiffWatchPrev<CR>",   desc = "Diff Watch Prev" },
+            { "]w",         "<Cmd>DiffWatchNext<CR>",   desc = "Diff Watch Next" },
+        },
+        config = function()
+            require("diffwatch").setup({
+                -- Configuration goes here
+            })
+        end
+    },
+}
+```
+
+Default configuration:
+
+```lua
+local CONFIG = {
+    highlights = {
+        added = 'DiffWatchAdd',         -- Added lines
+        changed = 'DiffWatchChange',    -- Changed lines
+        removed = 'DiffWatchDelete',    -- Removed lines
+        modified = "DiffWatchModified", -- Modifed lines
+        hint = 'DiffWatchHint',         -- Hint text
+    },
+    mappings = {
+        ours = "<leader>co",
+        theirs = "<leader>ca",
+        both = "<leader>cu",
+        none = "<leader>cn",
+    },
+    hint_position = 'eol_right_align',
+}
+```
+
 ## Usage
 
-This plugin provides two commands:
+This plugin provides following commands:
 
 - `DiffWatch`\
   Toggles watching the current buffer for changes.
@@ -13,6 +57,12 @@ This plugin provides two commands:
 - `DiffWatchReset`\
   Resets the "original buffer" reference to the current state, showing diffs
   between now and future changes
+
+- `DiffWatchPrev`\
+  Go to the previous change
+
+- `DiffWatchNext`\
+  Go to the next change
 
 ## Showcase
 
@@ -37,7 +87,7 @@ This plugin provides two commands:
 
 - **Flexible resolution**\
   When your cursor is in a changed region, hints appear showing resolution
-  options, `<leader>co:ours | <leader>ca:theirs...`.
+  keymaps, `<leader>co:ours | <leader>ca:theirs...`.
 
   Available actions:
   - `ours`: Keep previous version
@@ -46,7 +96,8 @@ This plugin provides two commands:
   - `none`: Remove both
 
 - **Change navigation**\
-  Default keymaps `[w` and `]w` for jumping between changes
+  Provides user commands `DiffWatchPrev` and `DiffWatchNext` for jumping between
+  changes
 
 ## Why This Plugin?
 
