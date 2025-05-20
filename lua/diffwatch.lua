@@ -615,10 +615,6 @@ local function setup_mappings()
             vim.keymap.set('n', key, M.use_both, { noremap = true, silent = true, desc = "Use Both" })
         elseif cmd == "none" then
             vim.keymap.set('n', key, M.use_none, { noremap = true, silent = true, desc = "Use None" })
-        elseif cmd == "prev_change" then
-            vim.keymap.set('n', key, M.goto_prev_change, { noremap = true, silent = true, desc = "Previous Change" })
-        elseif cmd == "next_change" then
-            vim.keymap.set('n', key, M.goto_next_change, { noremap = true, silent = true, desc = "Next Change" })
         end
     end
 end
@@ -635,12 +631,20 @@ function M.setup(user_config)
     setup_mappings()
 
     -- Create commands
-    vim.api.nvim_create_user_command('DiffWatch', M.toggle_watching, {
+    vim.api.nvim_create_user_command('DiffWatchToggle', M.toggle_watching, {
         desc = 'Toggle watching for changes in current buffer'
     })
 
     vim.api.nvim_create_user_command('DiffWatchReset', M.reset_watching, {
         desc = 'Reset watching with current buffer as new original'
+    })
+
+    vim.api.nvim_create_user_command('DiffWatchPrev', M.goto_prev_change, {
+        desc = 'Go to previous change'
+    })
+
+    vim.api.nvim_create_user_command('DiffWatchNext', M.goto_next_change, {
+        desc = 'Go to next change'
     })
 end
 
