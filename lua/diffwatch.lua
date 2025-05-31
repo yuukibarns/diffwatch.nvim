@@ -511,6 +511,8 @@ function M.goto_prev_change()
         -- If current_col out of range, neovim will automatically set cursor at the end of line
         vim.api.nvim_win_set_cursor(0, { prev_change_line, current_col })
         update_cursor_hint()
+        -- Center the cursor in the window
+        vim.cmd("normal! zz")
     else
         vim.api.nvim_echo({ { 'No changes found', 'WarningMsg' } }, false, {})
     end
@@ -529,6 +531,8 @@ function M.goto_next_change()
         -- If current_col out of range, neovim will automatically set cursor at the end of line
         vim.api.nvim_win_set_cursor(0, { next_change_line, current_col })
         update_cursor_hint()
+        -- Center the cursor in the window
+        vim.cmd("normal! zz")
     else
         vim.api.nvim_echo({ { 'No changes found', 'WarningMsg' } }, false, {})
     end
