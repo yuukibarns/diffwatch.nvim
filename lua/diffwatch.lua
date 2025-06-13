@@ -5,11 +5,9 @@ local PRIORITY = (vim.hl or vim.highlight).priorities.user
 -- Configuration with defaults
 local CONFIG = {
     highlights = {
-        added = 'DiffWatchAdd',         -- Added lines
-        changed = 'DiffWatchChange',    -- Changed lines
-        removed = 'DiffWatchDelete',    -- Removed lines
-        modified = "DiffWatchModified", -- Modifed lines
-        hint = 'DiffWatchHint',         -- Hint text
+        added = 'DiffWatchAdd',      -- Added lines
+        removed = 'DiffWatchDelete', -- Removed lines
+        hint = 'DiffWatchHint',      -- Hint text
     },
     mappings = {
         ours = "<leader>co",
@@ -40,10 +38,7 @@ local state = {
 --- Setup highlight groups
 local function setup_highlights()
     local hlDiffAdd = vim.api.nvim_get_hl(0, { name = "DiffAdd" })
-    local hlDiffChange = vim.api.nvim_get_hl(0, { name = "DiffChange" })
     vim.api.nvim_set_hl(0, "DiffWatchAdd", { bg = hlDiffAdd.bg })
-    vim.api.nvim_set_hl(0, "DiffWatchChange", { bg = hlDiffChange.bg })
-    vim.api.nvim_set_hl(0, "DiffWatchModified", { link = "DiffModified" })
     vim.api.nvim_set_hl(0, "DiffWatchDelete", { link = "DiffDelete" })
     vim.api.nvim_set_hl(0, "DiffWatchHint", { link = "DiagnosticHint" })
 end
@@ -61,7 +56,7 @@ local function get_current_change()
     local current_line = cursor_pos[1] -- 1-based line number
 
     for _, change in ipairs(state.changes) do
-        local change_start = change.lnum + 1 -- convert to 1-based
+        local change_start = change.curr_start + 1 -- convert to 1-based
         local change_end = change_start
 
         if change.type == 'add' or change.type == 'change' then
@@ -89,18 +84,18 @@ local function find_previous_change(start_line)
         table.insert(sorted_changes, change)
     end
     table.sort(sorted_changes, function(a, b)
-        return a.lnum > b.lnum
+        return a.curr_start > b.curr_start
     end)
 
     -- Find the first change above start_line
     for _, change in ipairs(sorted_changes) do
-        local change_start = change.lnum + 1
+        local change_start = change.curr_start + 1
         if change_start < start_line then
             return change_start
         end
     end
 
-    return sorted_changes[1].lnum + 1
+    return sorted_changes[1].curr_start + 1
 end
 
 local function find_next_change(start_line)
@@ -114,18 +109,18 @@ local function find_next_change(start_line)
         table.insert(sorted_changes, change)
     end
     table.sort(sorted_changes, function(a, b)
-        return a.lnum < b.lnum
+        return a.curr_start < b.curr_start
     end)
 
     -- Find the first change below start_line
     for _, change in ipairs(sorted_changes) do
-        local change_start = change.lnum + 1
+        local change_start = change.curr_start + 1
         if change_start > start_line then
             return change_start
         end
     end
 
-    return sorted_changes[1].lnum + 1
+    return sorted_changes[1].curr_start + 1
 end
 
 -- Add this function to show/hide hints based on cursor position
@@ -145,12 +140,12 @@ local function update_cursor_hint()
         local in_change = false
 
         if change.type == 'add' or change.type == 'change' then
-            local start_line = change.lnum + 1 -- convert to 1-based
+            local start_line = change.curr_start + 1 -- convert to 1-based
             local end_line = start_line + #change.current_lines - 1
             in_change = current_line >= start_line and current_line <= end_line
         elseif change.type == 'del' then
             -- For deletions, we consider the line where the deletion occurred
-            in_change = current_line == change.lnum + 1
+            in_change = current_line == change.curr_start + 1
         end
 
         if in_change then
@@ -223,7 +218,8 @@ local function highlight_changes()
             end
             table.insert(state.changes, {
                 type = 'add',
-                lnum = curr_start - 1,
+                orig_start = orig_start,
+                curr_start = curr_start - 1,
                 current_lines = vim.api.nvim_buf_get_lines(0, curr_start - 1, curr_start + curr_count - 1, false)
             })
             -- Handle deletions (present in original but not current)
@@ -234,7 +230,8 @@ local function highlight_changes()
             end
             table.insert(state.changes, {
                 type = 'del',
-                lnum = curr_start - 1,
+                orig_start = orig_start,
+                curr_start = curr_start - 1,
                 original_lines = del_lines
             })
 
@@ -273,7 +270,7 @@ local function highlight_changes()
             -- Highlight changed lines
             for i = curr_start, curr_start + curr_count - 1 do
                 vim.api.nvim_buf_set_extmark(0, NAMESPACE, i - 1, 0, {
-                    line_hl_group = CONFIG.highlights.changed,
+                    line_hl_group = CONFIG.highlights.added,
                     hl_mode = "combine",
                     end_row = i - 1,
                     priority = PRIORITY
@@ -302,17 +299,20 @@ local function highlight_changes()
                     local line_width = vim.fn.strdisplaywidth(line)
                     local spaces_needed = math.max(0, win_width - line_width)
                     local padded_line = line .. string.rep(' ', spaces_needed)
-                    table.insert(orig_lines_with_hi, { { padded_line, CONFIG.highlights.modified } })
+                    table.insert(orig_lines_with_hi, { { padded_line, CONFIG.highlights.removed } })
                 end
 
-                vim.api.nvim_buf_set_extmark(0, NAMESPACE, curr_start + curr_count - 2, 0, {
+                -- Place the deleted lines above the first changed line
+                vim.api.nvim_buf_set_extmark(0, NAMESPACE, curr_start - 1, 0, {
                     virt_lines = orig_lines_with_hi,
+                    virt_lines_above = true -- This makes the virtual text appear above the line
                 })
             end
 
             table.insert(state.changes, {
                 type = 'change',
-                lnum = curr_start - 1,
+                orig_start = orig_start,
+                curr_start = curr_start - 1,
                 current_lines = vim.api.nvim_buf_get_lines(0, curr_start - 1, curr_start + curr_count - 1, false),
                 original_lines = orig_lines
             })
@@ -326,7 +326,7 @@ function M.accept_theirs()
         return
     end
 
-    local changed_line, start_line = get_current_change()
+    local changed_line = get_current_change()
 
     if not changed_line then
         vim.api.nvim_echo({ { 'Cursor is not on a changed line', 'WarningMsg' } }, false, {})
@@ -337,11 +337,11 @@ function M.accept_theirs()
     if changed_line.type == 'add' then
         -- For additions, insert the new lines into original
         for i, line in ipairs(changed_line.current_lines) do
-            table.insert(state.original_lines, changed_line.lnum + i, line)
+            table.insert(state.original_lines, changed_line.orig_start + i, line)
         end
     elseif changed_line.type == 'change' then
         -- First remove the original lines
-        local original_start = changed_line.lnum + 1
+        local original_start = changed_line.orig_start
         local original_end = original_start + #changed_line.original_lines - 1
         for _ = original_start, original_end do
             table.remove(state.original_lines, original_start)
@@ -349,10 +349,10 @@ function M.accept_theirs()
 
         -- Then insert the current lines
         for i, line in ipairs(changed_line.current_lines) do
-            table.insert(state.original_lines, changed_line.lnum + i, line)
+            table.insert(state.original_lines, changed_line.orig_start - 1 + i, line)
         end
     elseif changed_line.type == 'del' then
-        local original_start = changed_line.lnum + 2
+        local original_start = changed_line.orig_start
         local original_end = original_start + #changed_line.original_lines - 1
         for _ = original_start, original_end do
             table.remove(state.original_lines, original_start)
@@ -381,18 +381,21 @@ function M.restore_ours()
     -- Update the current buffer to match original_lines
     if changed_line.type == 'add' then
         -- For additions, remove the added lines
-        vim.api.nvim_buf_set_lines(0, changed_line.lnum, changed_line.lnum + #changed_line.current_lines, false, {})
+        vim.api.nvim_buf_set_lines(0, changed_line.curr_start, changed_line.curr_start + #changed_line.current_lines,
+            false, {})
     elseif changed_line.type == 'change' then
         -- First remove the current lines
-        local current_start = changed_line.lnum
+        local current_start = changed_line.curr_start
         local current_end = current_start + #changed_line.current_lines
         vim.api.nvim_buf_set_lines(0, current_start, current_end, false, {})
 
         -- Restore the original lines
-        vim.api.nvim_buf_set_lines(0, changed_line.lnum, changed_line.lnum, false, changed_line.original_lines)
+        vim.api.nvim_buf_set_lines(0, changed_line.curr_start, changed_line.curr_start, false,
+            changed_line.original_lines)
     elseif changed_line.type == 'del' then
         -- For deletions, restore the deleted lines
-        vim.api.nvim_buf_set_lines(0, changed_line.lnum + 1, changed_line.lnum + 1, false, changed_line.original_lines)
+        vim.api.nvim_buf_set_lines(0, changed_line.curr_start + 1, changed_line.curr_start + 1, false,
+            changed_line.original_lines)
     end
 
     -- Set cursor to the start line of the current change
@@ -425,21 +428,22 @@ function M.use_both()
     if changed_line.type == 'add' then
         -- For additions, insert the new lines into original
         for i, line in ipairs(changed_line.current_lines) do
-            table.insert(state.original_lines, changed_line.lnum + i, line)
+            table.insert(state.original_lines, changed_line.orig_start + i, line)
         end
     elseif changed_line.type == 'change' then
         -- First insert the new lines into original
         for i, line in ipairs(changed_line.current_lines) do
-            table.insert(state.original_lines, changed_line.lnum + i, line)
+            table.insert(state.original_lines, changed_line.orig_start + #changed_line.original_lines - 1 + i, line)
         end
 
         -- Then original lines become "Deleted".
         -- Restore them.
-        vim.api.nvim_buf_set_lines(0, changed_line.lnum + #changed_line.current_lines,
-            changed_line.lnum + #changed_line.current_lines, false, changed_line.original_lines)
+        vim.api.nvim_buf_set_lines(0, changed_line.curr_start,
+            changed_line.curr_start, false, changed_line.original_lines)
     elseif changed_line.type == 'del' then
         -- For deletions, restore the deleted lines
-        vim.api.nvim_buf_set_lines(0, changed_line.lnum + 1, changed_line.lnum + 1, false, changed_line.original_lines)
+        vim.api.nvim_buf_set_lines(0, changed_line.curr_start + 1, changed_line.curr_start + 1, false,
+            changed_line.original_lines)
     end
 
     -- Update highlights to reflect the new state
@@ -464,21 +468,22 @@ function M.use_none()
     -- Update the current buffer to match original_lines
     if changed_line.type == 'add' then
         -- For additions, remove the added lines
-        vim.api.nvim_buf_set_lines(0, changed_line.lnum, changed_line.lnum + #changed_line.current_lines, false, {})
+        vim.api.nvim_buf_set_lines(0, changed_line.curr_start, changed_line.curr_start + #changed_line.current_lines,
+            false, {})
     elseif changed_line.type == 'change' then
         -- First remove the current lines
-        local current_start = changed_line.lnum
+        local current_start = changed_line.curr_start
         local current_end = current_start + #changed_line.current_lines
         vim.api.nvim_buf_set_lines(0, current_start, current_end, false, {})
 
         -- Then remove the original lines
-        local original_start = changed_line.lnum + 1
+        local original_start = changed_line.orig_start
         local original_end = original_start + #changed_line.original_lines - 1
         for _ = original_start, original_end do
             table.remove(state.original_lines, original_start)
         end
     elseif changed_line.type == 'del' then
-        local original_start = changed_line.lnum + 3
+        local original_start = changed_line.orig_start
         local original_end = original_start + #changed_line.original_lines - 1
         for _ = original_start, original_end do
             table.remove(state.original_lines, original_start)
@@ -495,7 +500,7 @@ function M.use_none()
     -- Update highlights to reflect the new state
     highlight_changes()
     update_cursor_hint()
-    vim.api.nvim_echo({ { 'Use Both', 'MoreMsg' } }, false, {})
+    vim.api.nvim_echo({ { 'Use None', 'MoreMsg' } }, false, {})
 end
 
 function M.goto_prev_change()
